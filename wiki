@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+
+PAGE=${1:-Walrus}
+
+# extract "explaintext" (first few paragraphs from an article)
+EXPLAIN_RAW=$(curl -s "https://en.wikipedia.org/w/api.php?action=query&prop=extracts&titles=$PAGE&format=json&exintro&explaintext" | jq -r '.query.pages | to_entries | .[0].value.extract' | head -n 1)
+
+# get section name list
+mapfile -t SECTIONS < <(curl -s "https://en.wikipedia.org/w/api.php?action=parse&page=$PAGE&format=json&prop=sections" | jq -r '.parse.sections[].line')
+
+# remove quotes & get first sentence (until first dot)
+FST_SEN=$(sed -e 's/\..*//' <<< $EXPLAIN_RAW)
+# FST_SEN=$(sed -e 's/^"//' -e 's/\..*//' <<< $EXPLAIN_RAW)
+# FST_SEN=$EXPLAIN_RAW
+
+printf "%s\n" "$FST_SEN."
+
+echo -e "\nsections:"
+
+for section in "${SECTIONS[@]}"; do
+    printf '%s %s\n' '-' "$section"
+done
