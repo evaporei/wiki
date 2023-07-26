@@ -2,21 +2,28 @@
 
 PAGE=${1:-Walrus}
 
-# extract "explaintext" (first few paragraphs from an article)
-EXPLAIN_RAW=$(curl -s "https://en.wikipedia.org/w/api.php?action=query&prop=extracts&titles=$PAGE&format=json&exintro&explaintext" | jq -r '.query.pages | to_entries | .[0].value.extract' | head -n 1)
+# first sentence
+print_fst_sen() {
+    # extract "explaintext" (first few paragraphs from an article)
+    local explain_raw=$(curl -s "https://en.wikipedia.org/w/api.php?action=query&prop=extracts&titles=$PAGE&format=json&exintro&explaintext" | jq -r '.query.pages | to_entries | .[0].value.extract' | head -n 1)
 
-# get section name list
-mapfile -t SECTIONS < <(curl -s "https://en.wikipedia.org/w/api.php?action=parse&page=$PAGE&format=json&prop=sections" | jq -r '.parse.sections[].line')
+    # remove quotes & get first sentence (until first dot)
+    local fst_sen=$(sed -e 's/\..*//' <<< $explain_raw)
 
-# remove quotes & get first sentence (until first dot)
-FST_SEN=$(sed -e 's/\..*//' <<< $EXPLAIN_RAW)
-# FST_SEN=$(sed -e 's/^"//' -e 's/\..*//' <<< $EXPLAIN_RAW)
-# FST_SEN=$EXPLAIN_RAW
+    printf "%s\n" "$fst_sen."
+}
 
-printf "%s\n" "$FST_SEN."
+print_sections() {
+    # get section name list
+    mapfile -t sections < <(curl -s "https://en.wikipedia.org/w/api.php?action=parse&page=$PAGE&format=json&prop=sections" | jq -r '.parse.sections[].line')
 
-echo -e "\nsections:"
+    echo -e "sections:"
 
-for section in "${SECTIONS[@]}"; do
-    printf '%s %s\n' '-' "$section"
-done
+    for section in "${sections[@]}"; do
+        printf '%s %s\n' '-' "$section"
+    done
+}
+
+print_fst_sen
+printf "\n" ""
+print_sections
