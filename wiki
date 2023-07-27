@@ -1,27 +1,50 @@
 #!/usr/bin/env bash
 
 PAGE=${1:-Walrus}
+SUBSECTION=$2
 
 SECTIONS=$(curl -s "https://en.wikipedia.org/w/api.php?action=parse&page=$PAGE&format=json&prop=sections")
 
-# first sentence
-print_fst_sen() {
-    local fst_sen=$(curl -s "https://en.wikipedia.org/w/api.php?action=query&prop=extracts&titles=$PAGE&format=json&exintro&explaintext&exsentences=1" | jq -r '.query.pages | to_entries | .[0].value.extract')
+mapfile -t SECTION_NAMES < <(jq -r '.parse.sections[].line' <<< $SECTIONS)
 
+if [ -z "$SUBSECTION" ]; then
+    # first sentence
+    fst_sen=$(curl -s "https://en.wikipedia.org/w/api.php?action=query&prop=extracts&titles=$PAGE&format=json&exintro&explaintext&exsentences=1" | jq -r '.query.pages | to_entries | .[0].value.extract')
     printf "%s\n" "$fst_sen"
-}
 
-print_sections() {
-    # get section name list
-    mapfile -t section_names < <(jq -r '.parse.sections[].line' <<< $SECTIONS)
+    printf "\n" ""
 
     printf "sections:\n"
-
-    for section in "${section_names[@]}"; do
+    for section in "${SECTION_NAMES[@]}"; do
         printf '%s %s\n' '-' "$section"
     done
-}
+else
+    mapfile -t section_idxs < <(jq -r '.parse.sections[].index' <<< $SECTIONS)
+    mapfile -t section_numbers < <(jq -r '.parse.sections[].number' <<< $SECTIONS)
 
-print_fst_sen
-printf "\n" ""
-print_sections
+    section_id=""
+    section_number=""
+
+    for idx in "${section_idxs[@]}"; do
+        i=$(( $idx - 1 ))
+        if [[ "${SECTION_NAMES[$i]}" = "${SUBSECTION}" ]]; then
+            section_id=$idx
+            section_number="${section_numbers[$i]}"
+        fi
+    done
+
+    section_raw=$(curl -s "https://en.wikipedia.org/w/api.php?action=parse&page=$PAGE&format=json&prop=text&section=$section_id" | jq '.parse.text[]')
+
+    section_fst_sen=$(sed -e 's/.*<p>\(.*\)<\/p>.*/\1/' <<< "$section_raw" | xmllint --html --xpath 'string()' - 2> /dev/null | sed -e 's/\..*//')
+
+    printf "%s.\n" "$section_fst_sen"
+
+    printf "\n" ""
+
+    printf "subsections:\n"
+    for i in $(seq ${#SECTION_NAMES[@]}); do
+        if [[ "${section_numbers[$i]}" = $section_number.* ]]; then
+            printf '%s %s\n' '-' "${SECTION_NAMES[$i]}"
+        fi
+    done
+fi
