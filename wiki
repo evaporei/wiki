@@ -6,13 +6,9 @@ SECTIONS=$(curl -s "https://en.wikipedia.org/w/api.php?action=parse&page=$PAGE&f
 
 # first sentence
 print_fst_sen() {
-    # extract "explaintext" (first few paragraphs from an article)
-    local explain_raw=$(curl -s "https://en.wikipedia.org/w/api.php?action=query&prop=extracts&titles=$PAGE&format=json&exintro&explaintext" | jq -r '.query.pages | to_entries | .[0].value.extract' | head -n 1)
+    local fst_sen=$(curl -s "https://en.wikipedia.org/w/api.php?action=query&prop=extracts&titles=$PAGE&format=json&exintro&explaintext&exsentences=1" | jq -r '.query.pages | to_entries | .[0].value.extract')
 
-    # get first sentence (until first dot)
-    local fst_sen=$(sed -e 's/\..*//' <<< $explain_raw)
-
-    printf "%s\n" "$fst_sen."
+    printf "%s\n" "$fst_sen"
 }
 
 print_sections() {
