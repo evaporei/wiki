@@ -19,7 +19,7 @@ print_sections() {
     # get section name list
     mapfile -t section_names < <(jq -r '.parse.sections[].line' <<< $SECTIONS)
 
-    echo -e "sections:"
+    printf "sections:\n"
 
     for section in "${section_names[@]}"; do
         printf '%s %s\n' '-' "$section"
