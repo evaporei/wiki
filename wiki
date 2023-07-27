@@ -2,6 +2,8 @@
 
 PAGE=${1:-Walrus}
 
+SECTIONS=$(curl -s "https://en.wikipedia.org/w/api.php?action=parse&page=$PAGE&format=json&prop=sections")
+
 # first sentence
 print_fst_sen() {
     # extract "explaintext" (first few paragraphs from an article)
@@ -15,11 +17,11 @@ print_fst_sen() {
 
 print_sections() {
     # get section name list
-    mapfile -t sections < <(curl -s "https://en.wikipedia.org/w/api.php?action=parse&page=$PAGE&format=json&prop=sections" | jq -r '.parse.sections[].line')
+    mapfile -t section_names < <(jq -r '.parse.sections[].line' <<< $SECTIONS)
 
     echo -e "sections:"
 
-    for section in "${sections[@]}"; do
+    for section in "${section_names[@]}"; do
         printf '%s %s\n' '-' "$section"
     done
 }
