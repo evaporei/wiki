@@ -47,5 +47,5 @@ subsections:
 ```bash
 $ wiki walr[tab] # completes to walrus
 
-$ wiki walrus anat[tab] # completes to walrus
+$ wiki walrus anat[tab] # completes to anatomy
 ```
